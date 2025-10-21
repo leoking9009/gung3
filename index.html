@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기억의 궁전 - Memory Palace</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏰 기억의 궁전</h1>
+            <p class="subtitle">제시어를 입력하면 장소와 물건으로 연결해드립니다</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <div class="input-group">
+                    <label for="keywords">기억할 단어들을 입력하세요 (쉼표로 구분)</label>
+                    <textarea
+                        id="keywords"
+                        placeholder="예: 사과, 연필, 컴퓨터, 책, 자동차"
+                        rows="4"
+                    ></textarea>
+                </div>
+                <button id="generateBtn" class="btn-primary">기억의 궁전 생성</button>
+            </section>
+
+            <section id="palaceSection" class="palace-section hidden">
+                <h2>당신의 기억의 궁전</h2>
+                <div id="palaceGrid" class="palace-grid"></div>
+                <button id="resetBtn" class="btn-secondary">다시 시작</button>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-box">
+                <h3>💡 사용 방법</h3>
+                <ol>
+                    <li>기억하고 싶은 단어들을 쉼표로 구분하여 입력하세요</li>
+                    <li>'기억의 궁전 생성' 버튼을 클릭하세요</li>
+                    <li>각 단어가 특정 장소의 물건과 연결됩니다</li>
+                    <li>장소를 떠올리며 물건을 통해 단어를 기억하세요</li>
+                </ol>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

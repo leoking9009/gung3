@@ -254,6 +254,9 @@ class MemoryPalace {
         this.currentPosition = document.getElementById('currentPosition');
         this.resetPositionBtn = document.getElementById('resetPositionBtn');
 
+        // Gemini AI 모델 캐시
+        this.geminiModel = null;
+
         // AI 관련
         this.useAICheckbox = document.getElementById('useAI');
         this.loadingIndicator = document.getElementById('loadingIndicator');
@@ -355,6 +358,40 @@ class MemoryPalace {
         alert('API 키가 저장되었습니다.');
     }
 
+    async discoverGeminiModel(apiKey) {
+        // 이미 캐시된 모델이 있으면 사용
+        if (this.geminiModel) {
+            return this.geminiModel;
+        }
+
+        console.log('Discovering available Gemini models...');
+        const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const modelsResponse = await fetch(modelsUrl);
+
+        if (!modelsResponse.ok) {
+            throw new Error(`모델 목록 가져오기 실패 (${modelsResponse.status})`);
+        }
+
+        const modelsData = await modelsResponse.json();
+        console.log('Available models:', modelsData);
+
+        // generateContent를 지원하는 모델 찾기
+        const supportedModels = modelsData.models?.filter(m =>
+            m.supportedGenerationMethods?.includes('generateContent')
+        ) || [];
+
+        console.log('Models supporting generateContent:', supportedModels.map(m => m.name));
+
+        if (supportedModels.length === 0) {
+            throw new Error('generateContent를 지원하는 모델이 없습니다.');
+        }
+
+        // 첫 번째 사용 가능한 모델을 캐시하고 반환
+        this.geminiModel = supportedModels[0].name;
+        console.log('Using model:', this.geminiModel);
+        return this.geminiModel;
+    }
+
     async testApiKey() {
         const apiKey = this.apiKeyInput.value.trim() || localStorage.getItem('geminiApiKey');
         if (!apiKey) {
@@ -366,11 +403,33 @@ class MemoryPalace {
         this.testApiKeyBtn.textContent = '테스트 중...';
 
         try {
-            console.log('Testing API with key:', apiKey.substring(0, 10) + '...');
-            const story = await this.generateAIStory('테스트', { name: '거실', emoji: '🛋️' }, { name: '소파', emoji: '🛋️' }, apiKey);
-            if (story) {
-                alert('✅ API 테스트 성공!\n\n생성된 스토리 예시:\n' + story);
+            // 모델 발견 시도
+            const modelName = await this.discoverGeminiModel(apiKey);
+            const modelDisplayName = modelName.split('/')[1];
+
+            // 간단한 테스트 요청 수행
+            const testUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+            const testResponse = await fetch(testUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: '안녕하세요' }]
+                    }],
+                    generationConfig: {
+                        maxOutputTokens: 10,
+                    }
+                })
+            });
+
+            if (testResponse.ok) {
+                alert(`✅ API 키 테스트 성공!\n\n사용할 모델: ${modelDisplayName}\n\nAI 스토리 생성이 준비되었습니다.`);
+            } else {
+                const errorData = await testResponse.json();
+                console.error('Test API Error:', errorData);
+                alert(`⚠️ 모델은 발견되었으나 테스트 실패\n\n모델: ${modelDisplayName}\n에러: ${errorData.error?.message || '알 수 없는 오류'}`);
             }
+
         } catch (error) {
             console.error('API Test Error:', error);
             let errorMsg = '❌ API 테스트 실패\n\n';
@@ -378,7 +437,7 @@ class MemoryPalace {
             errorMsg += '확인사항:\n';
             errorMsg += '1. API 키가 올바른지 확인\n';
             errorMsg += '2. Google AI Studio에서 API가 활성화되었는지 확인\n';
-            errorMsg += '3. API 키 사용 제한이 없는지 확인\n';
+            errorMsg += '3. "Generative Language API" 권한 확인\n';
             errorMsg += '4. 브라우저 콘솔(F12)에서 자세한 에러 확인\n\n';
             errorMsg += 'API 키 발급: https://makersuite.google.com/app/apikey';
             alert(errorMsg);
@@ -393,6 +452,9 @@ class MemoryPalace {
         if (!key) {
             throw new Error('API 키가 설정되지 않았습니다.');
         }
+
+        // 사용 가능한 모델 자동 발견
+        const modelName = await this.discoverGeminiModel(key);
 
         const prompt = `당신은 기억술 전문가입니다. 다음 조건으로 매우 과장되고 생생한 기억 스토리를 만들어주세요:
 
@@ -411,8 +473,8 @@ class MemoryPalace {
 
 이제 위 조건으로 "${keyword}"에 대한 생생한 스토리를 만들어주세요:`;
 
-        // Try gemini-1.5-pro as it's more stable
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`;
+        // 발견된 모델 사용
+        const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${key}`;
 
         const response = await fetch(url, {
             method: 'POST',

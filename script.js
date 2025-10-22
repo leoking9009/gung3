@@ -254,10 +254,21 @@ class MemoryPalace {
         this.currentPosition = document.getElementById('currentPosition');
         this.resetPositionBtn = document.getElementById('resetPositionBtn');
 
+        // AI 관련
+        this.useAICheckbox = document.getElementById('useAI');
+        this.loadingIndicator = document.getElementById('loadingIndicator');
+        this.enableAICheckbox = document.getElementById('enableAI');
+        this.apiKeyInput = document.getElementById('apiKey');
+        this.saveApiKeyBtn = document.getElementById('saveApiKey');
+        this.testApiKeyBtn = document.getElementById('testApiKey');
+        this.exportDataBtn = document.getElementById('exportData');
+        this.clearAllDataBtn = document.getElementById('clearAllData');
+
         // 상태
         this.currentPalaceData = null;
         this.currentTestPalace = null;
         this.answersVisible = false;
+        this.isGenerating = false;
 
         this.init();
     }
@@ -272,6 +283,22 @@ class MemoryPalace {
         this.tabBtns.forEach(btn => {
             btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
         });
+
+        // AI 설정
+        this.saveApiKeyBtn.addEventListener('click', () => this.saveApiKey());
+        this.testApiKeyBtn.addEventListener('click', () => this.testApiKey());
+        this.enableAICheckbox.addEventListener('change', (e) => {
+            localStorage.setItem('aiEnabled', e.target.checked);
+            this.useAICheckbox.checked = e.target.checked;
+        });
+        this.useAICheckbox.addEventListener('change', (e) => {
+            this.enableAICheckbox.checked = e.target.checked;
+            localStorage.setItem('aiEnabled', e.target.checked);
+        });
+
+        // 데이터 관리
+        this.exportDataBtn.addEventListener('click', () => this.exportData());
+        this.clearAllDataBtn.addEventListener('click', () => this.clearAllData());
 
         // 저장된 궁전
         this.clearAllBtn.addEventListener('click', () => this.clearAllPalaces());
@@ -291,8 +318,154 @@ class MemoryPalace {
         });
 
         // 초기 로드
+        this.loadSettings();
         this.updateSavedList();
         this.updateStats();
+    }
+
+    loadSettings() {
+        // AI 설정 로드
+        const aiEnabled = localStorage.getItem('aiEnabled');
+        if (aiEnabled !== null) {
+            const enabled = aiEnabled === 'true';
+            this.enableAICheckbox.checked = enabled;
+            this.useAICheckbox.checked = enabled;
+        }
+
+        // API 키 로드 (보안상 마스킹해서 표시)
+        const apiKey = localStorage.getItem('geminiApiKey');
+        if (apiKey) {
+            this.apiKeyInput.value = apiKey;
+        } else {
+            // 기본 API 키 설정 (사용자가 제공한 키)
+            const defaultKey = 'AIzaSyCQ4DqdPQzIBJL5gZ6-qqTz9nGInOPVoY4';
+            localStorage.setItem('geminiApiKey', defaultKey);
+            this.apiKeyInput.value = defaultKey;
+        }
+    }
+
+    saveApiKey() {
+        const apiKey = this.apiKeyInput.value.trim();
+        if (!apiKey) {
+            alert('API 키를 입력해주세요.');
+            return;
+        }
+
+        localStorage.setItem('geminiApiKey', apiKey);
+        alert('API 키가 저장되었습니다.');
+    }
+
+    async testApiKey() {
+        const apiKey = this.apiKeyInput.value.trim() || localStorage.getItem('geminiApiKey');
+        if (!apiKey) {
+            alert('API 키를 입력하거나 저장해주세요.');
+            return;
+        }
+
+        this.testApiKeyBtn.disabled = true;
+        this.testApiKeyBtn.textContent = '테스트 중...';
+
+        try {
+            const story = await this.generateAIStory('테스트', { name: '거실', emoji: '🛋️' }, { name: '소파', emoji: '🛋️' }, apiKey);
+            if (story) {
+                alert('✅ API 테스트 성공!\n\n생성된 스토리 예시:\n' + story);
+            }
+        } catch (error) {
+            alert('❌ API 테스트 실패:\n' + error.message);
+        } finally {
+            this.testApiKeyBtn.disabled = false;
+            this.testApiKeyBtn.textContent = 'API 테스트';
+        }
+    }
+
+    async generateAIStory(keyword, location, object, apiKey = null) {
+        const key = apiKey || localStorage.getItem('geminiApiKey');
+        if (!key) {
+            throw new Error('API 키가 설정되지 않았습니다.');
+        }
+
+        const prompt = `당신은 기억술 전문가입니다. 다음 조건으로 매우 과장되고 생생한 기억 스토리를 만들어주세요:
+
+장소: ${location.name} ${location.emoji}
+물건: ${object.name} ${object.emoji}
+기억할 단어: "${keyword}"
+
+요구사항:
+1. 극도로 과장되고 비현실적인 장면을 만들어주세요
+2. 폭발, 거대화, 변신, 빛남, 날아다님 등 역동적인 표현을 사용하세요
+3. 색깔(무지개, 황금, 형광 등)을 구체적으로 언급하세요
+4. 2-3문장으로 작성해주세요
+5. 반말로 작성하고 느낌표를 사용하세요
+
+예시: "신발장이 갑자기 폭발하면서 수천 개의 거대한 빨간 사과가 무지개 빛으로 쏟아져 나온다! 사과들이 현관 천장까지 쌓이면서 집 전체가 진동하고, 사과 향기가 폭발적으로 퍼져나간다!"
+
+이제 위 조건으로 "${keyword}"에 대한 생생한 스토리를 만들어주세요:`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.9,
+                    maxOutputTokens: 200,
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'API 호출 실패');
+        }
+
+        const data = await response.json();
+        const story = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!story) {
+            throw new Error('스토리 생성 실패');
+        }
+
+        return story.trim();
+    }
+
+    exportData() {
+        const data = {
+            palaces: this.getSavedPalaces(),
+            stats: this.getUsageStats(),
+            position: this.getCurrentPosition(),
+            apiKey: localStorage.getItem('geminiApiKey'),
+            aiEnabled: localStorage.getItem('aiEnabled')
+        };
+
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `memory-palace-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert('데이터가 다운로드되었습니다.');
+    }
+
+    clearAllData() {
+        if (!confirm('정말로 모든 데이터를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!')) return;
+        if (!confirm('마지막 확인: 저장된 궁전, 통계, 설정이 모두 삭제됩니다.')) return;
+
+        localStorage.clear();
+        alert('모든 데이터가 삭제되었습니다. 페이지를 새로고침합니다.');
+        location.reload();
     }
 
     switchTab(tabName) {
@@ -351,43 +524,89 @@ class MemoryPalace {
         this.createPalaceCards(keywords);
     }
 
-    createPalaceCards(keywords) {
+    async createPalaceCards(keywords) {
         this.palaceGrid.innerHTML = '';
+        this.isGenerating = true;
 
         // 현재 위치 가져오기
         const startPosition = this.getCurrentPosition();
 
         const associations = [];
+        const useAI = this.useAICheckbox.checked && localStorage.getItem('aiEnabled') !== 'false';
 
-        keywords.forEach((keyword, index) => {
-            const position = startPosition + index;
-            const association = this.getLocationObjectPair(position);
-            associations.push({
-                keyword,
-                location: association.location,
-                object: association.object,
-                position
-            });
+        // AI 사용 시 로딩 표시
+        if (useAI) {
+            this.loadingIndicator.classList.remove('hidden');
+            this.generateBtn.disabled = true;
+        }
 
-            const card = this.createCard(keyword, association);
-            this.palaceGrid.appendChild(card);
-        });
+        try {
+            // 연관 데이터 생성
+            for (let index = 0; index < keywords.length; index++) {
+                const keyword = keywords[index];
+                const position = startPosition + index;
+                const association = this.getLocationObjectPair(position);
+                associations.push({
+                    keyword,
+                    location: association.location,
+                    object: association.object,
+                    position
+                });
+            }
 
-        // 현재 궁전 데이터 저장
-        const title = this.palaceTitleInput.value.trim() || `궁전 ${new Date().toLocaleString()}`;
-        this.currentPalaceData = {
-            title,
-            keywords,
-            associations,
-            startPosition,
-            endPosition: startPosition + keywords.length - 1
-        };
+            // AI로 스토리 생성 (병렬 처리)
+            if (useAI) {
+                const storyPromises = associations.map(async (assoc) => {
+                    try {
+                        const story = await this.generateAIStory(assoc.keyword, assoc.location, assoc.object);
+                        return { ...assoc, story };
+                    } catch (error) {
+                        console.error(`AI 스토리 생성 실패 (${assoc.keyword}):`, error);
+                        // 폴백: 기본 스토리 사용
+                        const story = this.generateDefaultStory(assoc.keyword, assoc.location, assoc.object);
+                        return { ...assoc, story };
+                    }
+                });
 
-        // 제목 표시
-        this.palaceDisplayTitle.textContent = title;
+                const associationsWithStories = await Promise.all(storyPromises);
 
-        this.palaceSection.classList.remove('hidden');
-        this.palaceSection.scrollIntoView({ behavior: 'smooth' });
+                // 카드 생성
+                associationsWithStories.forEach((assoc) => {
+                    const card = this.createCardWithStory(assoc.keyword, assoc, assoc.story);
+                    this.palaceGrid.appendChild(card);
+                });
+            } else {
+                // 기본 스토리 사용
+                associations.forEach((assoc) => {
+                    const story = this.generateDefaultStory(assoc.keyword, assoc.location, assoc.object);
+                    const card = this.createCardWithStory(assoc.keyword, assoc, story);
+                    this.palaceGrid.appendChild(card);
+                });
+            }
+
+            // 현재 궁전 데이터 저장
+            const title = this.palaceTitleInput.value.trim() || `궁전 ${new Date().toLocaleString()}`;
+            this.currentPalaceData = {
+                title,
+                keywords,
+                associations,
+                startPosition,
+                endPosition: startPosition + keywords.length - 1
+            };
+
+            // 제목 표시
+            this.palaceDisplayTitle.textContent = title;
+
+            this.palaceSection.classList.remove('hidden');
+            this.palaceSection.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            alert('궁전 생성 중 오류가 발생했습니다: ' + error.message);
+        } finally {
+            this.isGenerating = false;
+            this.loadingIndicator.classList.add('hidden');
+            this.generateBtn.disabled = false;
+        }
     }
 
     getLocationObjectPair(position) {
@@ -404,11 +623,9 @@ class MemoryPalace {
         return { location, object };
     }
 
-    createCard(keyword, association) {
+    createCardWithStory(keyword, association, story) {
         const card = document.createElement('div');
         card.className = 'palace-card';
-
-        const story = this.generateStory(keyword, association.location, association.object);
 
         card.innerHTML = `
             <div class="card-location">
@@ -426,7 +643,7 @@ class MemoryPalace {
         return card;
     }
 
-    generateStory(keyword, location, object) {
+    generateDefaultStory(keyword, location, object) {
         const stories = [
             `${object.name}에서 거대한 "${keyword}"가 폭발하듯 튀어나와 ${location.name} 전체를 가득 채웁니다!`,
             `${object.name}이 갑자기 살아 움직이며 "${keyword}"를 크게 외치고 있습니다!`,
@@ -571,7 +788,7 @@ class MemoryPalace {
             const card = document.createElement('div');
             card.className = 'palace-card';
 
-            const story = this.generateStory(assoc.keyword, assoc.location, assoc.object);
+            const story = this.generateDefaultStory(assoc.keyword, assoc.location, assoc.object);
 
             card.innerHTML = `
                 <div class="card-location">

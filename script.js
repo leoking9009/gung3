@@ -166,12 +166,8 @@ class MemoryPalace {
         this.palaceGrid.innerHTML = '';
         this.usedLocations.clear();
 
-        // 모든 장소-물건 조합을 생성하고 랜덤하게 섞기
-        const allPairs = this.createAllLocationObjectPairs();
-        const shuffledPairs = this.shuffleArray(allPairs);
-
         keywords.forEach((keyword, index) => {
-            const association = shuffledPairs[index % shuffledPairs.length];
+            const association = this.getLocationObjectPair(index);
             const card = this.createCard(keyword, association);
             this.palaceGrid.appendChild(card);
         });
@@ -180,24 +176,15 @@ class MemoryPalace {
         this.palaceSection.scrollIntoView({ behavior: 'smooth' });
     }
 
-    createAllLocationObjectPairs() {
-        const pairs = [];
-        locations.forEach(location => {
-            location.objects.forEach(object => {
-                pairs.push({ location, object });
-            });
-        });
-        return pairs;
-    }
+    getLocationObjectPair(index) {
+        // 순차적으로 장소와 물건 매칭
+        const locationIndex = Math.floor(index / 5) % locations.length;
+        const objectIndex = index % 5;
 
-    shuffleArray(array) {
-        // Fisher-Yates 셔플 알고리즘
-        const shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
+        const location = locations[locationIndex];
+        const object = location.objects[objectIndex];
+
+        return { location, object };
     }
 
     createCard(keyword, association) {
@@ -224,14 +211,21 @@ class MemoryPalace {
 
     generateStory(keyword, location, object) {
         const stories = [
-            `${location.name}에 들어서니 ${object.name}에 커다란 "${keyword}"가 놓여있습니다.`,
-            `${location.name}의 ${object.name}이 "${keyword}" 모양으로 변했습니다!`,
-            `${location.name}에서 ${object.name}를 보니 "${keyword}"가 생각납니다.`,
-            `${location.name}에 있는 ${object.name}에서 "${keyword}"라는 글자가 빛나고 있습니다.`,
-            `${location.name}의 ${object.name} 위에 "${keyword}"가 적힌 메모가 있습니다.`,
-            `${location.name}을 지나갈 때 ${object.name}이 "${keyword}"라고 속삭입니다.`,
-            `상상해보세요: ${location.name}의 ${object.name}이 "${keyword}"로 가득 차 있는 모습을!`,
-            `${location.name}에 들어가면 제일 먼저 보이는 ${object.name}에 "${keyword}"가 새겨져 있습니다.`
+            `${object.name}에서 거대한 "${keyword}"가 폭발하듯 튀어나와 ${location.name} 전체를 가득 채웁니다!`,
+            `${object.name}이 갑자기 살아 움직이며 "${keyword}"를 크게 외치고 있습니다!`,
+            `무지개 빛으로 빛나는 "${keyword}"가 ${object.name}을 뚫고 하늘로 솟구칩니다!`,
+            `${object.name}에서 수천 개의 "${keyword}"가 폭포수처럼 쏟아져 나옵니다!`,
+            `황금색으로 빛나는 "${keyword}"가 ${object.name}을 박살내고 터져 나옵니다!`,
+            `${object.name}이 "${keyword}" 모양으로 녹아내리며 바닥에 흘러넘칩니다!`,
+            `거대한 "${keyword}"가 ${object.name} 위에서 춤을 추며 빙글빙글 돌아갑니다!`,
+            `${object.name}에서 "${keyword}"가 번개처럼 번쩍이며 불꽃을 튀깁니다!`,
+            `"${keyword}"가 ${object.name}을 삼켜버리고 ${location.name}을 점령합니다!`,
+            `${object.name}이 폭발하면서 수백 개의 "${keyword}"로 변신합니다!`,
+            `형광색 "${keyword}"가 ${object.name}에서 튀어나와 천장까지 치솟습니다!`,
+            `${object.name}이 "${keyword}"를 토해내며 ${location.name}이 진동합니다!`,
+            `눈처럼 내리는 "${keyword}"가 ${object.name}을 완전히 뒤덮어 버립니다!`,
+            `${object.name}에서 거대한 "${keyword}"가 날아다니며 ${location.name}을 날아다닙니다!`,
+            `"${keyword}"가 ${object.name}과 하나가 되어 괴물처럼 변합니다!`
         ];
 
         // 키워드 기반으로 일관된 스토리 선택 (같은 키워드는 같은 스토리)

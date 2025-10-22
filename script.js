@@ -366,12 +366,22 @@ class MemoryPalace {
         this.testApiKeyBtn.textContent = '테스트 중...';
 
         try {
+            console.log('Testing API with key:', apiKey.substring(0, 10) + '...');
             const story = await this.generateAIStory('테스트', { name: '거실', emoji: '🛋️' }, { name: '소파', emoji: '🛋️' }, apiKey);
             if (story) {
                 alert('✅ API 테스트 성공!\n\n생성된 스토리 예시:\n' + story);
             }
         } catch (error) {
-            alert('❌ API 테스트 실패:\n' + error.message);
+            console.error('API Test Error:', error);
+            let errorMsg = '❌ API 테스트 실패\n\n';
+            errorMsg += '에러: ' + error.message + '\n\n';
+            errorMsg += '확인사항:\n';
+            errorMsg += '1. API 키가 올바른지 확인\n';
+            errorMsg += '2. Google AI Studio에서 API가 활성화되었는지 확인\n';
+            errorMsg += '3. API 키 사용 제한이 없는지 확인\n';
+            errorMsg += '4. 브라우저 콘솔(F12)에서 자세한 에러 확인\n\n';
+            errorMsg += 'API 키 발급: https://makersuite.google.com/app/apikey';
+            alert(errorMsg);
         } finally {
             this.testApiKeyBtn.disabled = false;
             this.testApiKeyBtn.textContent = 'API 테스트';
@@ -422,15 +432,25 @@ class MemoryPalace {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'API 호출 실패');
+            let errorMessage = `API 호출 실패 (${response.status})`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error?.message || errorMessage;
+                console.error('API Error Details:', errorData);
+            } catch (e) {
+                console.error('Failed to parse error response:', e);
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
+        console.log('API Response:', data);
+
         const story = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!story) {
-            throw new Error('스토리 생성 실패');
+            console.error('No story in response:', data);
+            throw new Error('스토리 생성 실패: AI가 응답을 생성하지 못했습니다.');
         }
 
         return story.trim();
@@ -601,7 +621,10 @@ class MemoryPalace {
             this.palaceSection.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            alert('궁전 생성 중 오류가 발생했습니다: ' + error.message);
+            console.error('Palace Generation Error:', error);
+            alert('궁전 생성 중 오류가 발생했습니다.\n\n' +
+                  '에러: ' + error.message + '\n\n' +
+                  'AI 기능을 끄고 다시 시도하거나,\n설정 탭에서 API 키를 확인해주세요.');
         } finally {
             this.isGenerating = false;
             this.loadingIndicator.classList.add('hidden');

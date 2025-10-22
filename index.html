@@ -128,18 +128,24 @@
                         <div class="setting-item">
                             <label for="apiKey" class="setting-label-text">Gemini API 키</label>
                             <input
-                                type="password"
+                                type="text"
                                 id="apiKey"
                                 class="api-key-input"
-                                placeholder="API 키를 입력하세요"
+                                placeholder="AIzaSy로 시작하는 키를 입력하세요"
                             />
                             <p class="setting-description">
                                 <a href="https://makersuite.google.com/app/apikey" target="_blank">
                                     Google AI Studio에서 무료 API 키 발급받기 →
                                 </a>
                             </p>
+                            <p class="setting-description" style="color: #e74c3c; font-weight: 600;">
+                                ⚠️ 문제 해결: API 키 발급 후 "Generative Language API" 활성화 필요
+                            </p>
                             <button id="saveApiKey" class="btn-success">API 키 저장</button>
                             <button id="testApiKey" class="btn-primary" style="margin-left: 10px;">API 테스트</button>
+                            <p class="setting-description" style="margin-top: 10px;">
+                                💡 테스트 실패 시 브라우저 콘솔(F12)에서 자세한 에러 확인
+                            </p>
                         </div>
                     </div>
 

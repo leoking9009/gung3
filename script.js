@@ -411,7 +411,7 @@ class MemoryPalace {
 
 이제 위 조건으로 "${keyword}"에 대한 생생한 스토리를 만들어주세요:`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
 
         const response = await fetch(url, {
             method: 'POST',

@@ -166,8 +166,12 @@ class MemoryPalace {
         this.palaceGrid.innerHTML = '';
         this.usedLocations.clear();
 
+        // 모든 장소-물건 조합을 생성하고 랜덤하게 섞기
+        const allPairs = this.createAllLocationObjectPairs();
+        const shuffledPairs = this.shuffleArray(allPairs);
+
         keywords.forEach((keyword, index) => {
-            const association = this.getLocationObjectPair(index);
+            const association = shuffledPairs[index % shuffledPairs.length];
             const card = this.createCard(keyword, association);
             this.palaceGrid.appendChild(card);
         });
@@ -176,14 +180,24 @@ class MemoryPalace {
         this.palaceSection.scrollIntoView({ behavior: 'smooth' });
     }
 
-    getLocationObjectPair(index) {
-        const locationIndex = Math.floor(index / 5) % locations.length;
-        const objectIndex = index % 5;
+    createAllLocationObjectPairs() {
+        const pairs = [];
+        locations.forEach(location => {
+            location.objects.forEach(object => {
+                pairs.push({ location, object });
+            });
+        });
+        return pairs;
+    }
 
-        const location = locations[locationIndex];
-        const object = location.objects[objectIndex];
-
-        return { location, object };
+    shuffleArray(array) {
+        // Fisher-Yates 셔플 알고리즘
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
     }
 
     createCard(keyword, association) {

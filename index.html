@@ -13,24 +13,86 @@
             <p class="subtitle">제시어를 입력하면 장소와 물건으로 연결해드립니다</p>
         </header>
 
-        <main>
-            <section class="input-section">
-                <div class="input-group">
-                    <label for="keywords">기억할 단어들을 입력하세요 (쉼표로 구분)</label>
-                    <textarea
-                        id="keywords"
-                        placeholder="예: 사과, 연필, 컴퓨터, 책, 자동차"
-                        rows="4"
-                    ></textarea>
-                </div>
-                <button id="generateBtn" class="btn-primary">기억의 궁전 생성</button>
-            </section>
+        <!-- 탭 네비게이션 -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="create">새로 만들기</button>
+            <button class="tab-btn" data-tab="saved">저장된 궁전</button>
+            <button class="tab-btn" data-tab="stats">사용 통계</button>
+        </nav>
 
-            <section id="palaceSection" class="palace-section hidden">
-                <h2>당신의 기억의 궁전</h2>
-                <div id="palaceGrid" class="palace-grid"></div>
-                <button id="resetBtn" class="btn-secondary">다시 시작</button>
-            </section>
+        <main>
+            <!-- 탭 1: 새로 만들기 -->
+            <div class="tab-content active" id="createTab">
+                <section class="input-section">
+                    <div class="input-group">
+                        <label for="palaceTitle">제목 (선택)</label>
+                        <input
+                            type="text"
+                            id="palaceTitle"
+                            placeholder="예: 영어 단어 20개"
+                            class="title-input"
+                        />
+                    </div>
+                    <div class="input-group">
+                        <label for="keywords">기억할 단어들을 입력하세요 (쉼표로 구분)</label>
+                        <textarea
+                            id="keywords"
+                            placeholder="예: 사과, 연필, 컴퓨터, 책, 자동차"
+                            rows="4"
+                        ></textarea>
+                    </div>
+                    <button id="generateBtn" class="btn-primary">기억의 궁전 생성</button>
+                </section>
+
+                <section id="palaceSection" class="palace-section hidden">
+                    <div class="palace-header">
+                        <h2 id="palaceDisplayTitle">당신의 기억의 궁전</h2>
+                        <div class="palace-actions">
+                            <button id="saveBtn" class="btn-success">💾 저장하기</button>
+                            <button id="resetBtn" class="btn-secondary">다시 시작</button>
+                        </div>
+                    </div>
+                    <div id="palaceGrid" class="palace-grid"></div>
+                </section>
+            </div>
+
+            <!-- 탭 2: 저장된 궁전 -->
+            <div class="tab-content" id="savedTab">
+                <section class="saved-section">
+                    <div class="saved-header">
+                        <h2>저장된 기억의 궁전</h2>
+                        <button id="clearAllBtn" class="btn-danger">전체 삭제</button>
+                    </div>
+                    <div id="savedList" class="saved-list"></div>
+                    <div id="emptyMessage" class="empty-message">
+                        아직 저장된 궁전이 없습니다. 새로운 궁전을 만들어보세요!
+                    </div>
+                </section>
+
+                <!-- 테스트 모드 -->
+                <section id="testSection" class="test-section hidden">
+                    <div class="test-header">
+                        <h2>암기 테스트</h2>
+                        <div class="test-controls">
+                            <button id="toggleAnswerBtn" class="btn-primary">정답 보기/숨기기</button>
+                            <button id="exitTestBtn" class="btn-secondary">테스트 종료</button>
+                        </div>
+                    </div>
+                    <div id="testGrid" class="palace-grid"></div>
+                </section>
+            </div>
+
+            <!-- 탭 3: 사용 통계 -->
+            <div class="tab-content" id="statsTab">
+                <section class="stats-section">
+                    <h2>장소 및 물건 사용 통계</h2>
+                    <div class="stats-info">
+                        <p>현재 사용 위치: <strong id="currentPosition">현관 - 신발장 (0/50)</strong></p>
+                        <button id="resetPositionBtn" class="btn-warning">위치 초기화</button>
+                    </div>
+                    <div id="statsGrid" class="stats-grid"></div>
+                </section>
+            </div>
         </main>
 
         <footer>
@@ -39,8 +101,9 @@
                 <ol>
                     <li>기억하고 싶은 단어들을 쉼표로 구분하여 입력하세요</li>
                     <li>'기억의 궁전 생성' 버튼을 클릭하세요</li>
-                    <li>각 단어가 특정 장소의 물건과 연결됩니다</li>
-                    <li>장소를 떠올리며 물건을 통해 단어를 기억하세요</li>
+                    <li>'저장하기'를 클릭하면 다음번에는 다음 장소부터 시작됩니다</li>
+                    <li>'저장된 궁전' 탭에서 암기 테스트를 할 수 있습니다</li>
+                    <li>'사용 통계' 탭에서 어떤 장소를 얼마나 사용했는지 확인하세요</li>
                 </ol>
             </div>
         </footer>

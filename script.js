@@ -109,6 +109,116 @@ const locations = [
             { name: '운동기구', emoji: '🏋️' },
             { name: '오래된 가구', emoji: '🪑' }
         ]
+    },
+    {
+        name: '박물관',
+        emoji: '🏛️',
+        objects: [
+            { name: '전시대', emoji: '🖼️' },
+            { name: '조각상', emoji: '🗿' },
+            { name: '유리 케이스', emoji: '💎' },
+            { name: '안내판', emoji: '📋' },
+            { name: '벤치', emoji: '🪑' }
+        ]
+    },
+    {
+        name: '도서관',
+        emoji: '📖',
+        objects: [
+            { name: '책장', emoji: '📚' },
+            { name: '열람대', emoji: '📖' },
+            { name: '사서 데스크', emoji: '🖊️' },
+            { name: '복사기', emoji: '🖨️' },
+            { name: '독서등', emoji: '💡' }
+        ]
+    },
+    {
+        name: '쇼핑몰',
+        emoji: '🛒',
+        objects: [
+            { name: '에스컬레이터', emoji: '🎢' },
+            { name: '매장 간판', emoji: '🏪' },
+            { name: '쇼핑카트', emoji: '🛒' },
+            { name: '시식대', emoji: '🍴' },
+            { name: '계산대', emoji: '💳' }
+        ]
+    },
+    {
+        name: '극장',
+        emoji: '🎭',
+        objects: [
+            { name: '무대', emoji: '🎭' },
+            { name: '좌석', emoji: '💺' },
+            { name: '커튼', emoji: '🎪' },
+            { name: '스크린', emoji: '🎬' },
+            { name: '팝콘 기계', emoji: '🍿' }
+        ]
+    },
+    {
+        name: '공원',
+        emoji: '🌲',
+        objects: [
+            { name: '벤치', emoji: '🪑' },
+            { name: '분수대', emoji: '⛲' },
+            { name: '놀이터', emoji: '🎠' },
+            { name: '산책로', emoji: '🛤️' },
+            { name: '쓰레기통', emoji: '🗑️' }
+        ]
+    },
+    {
+        name: '카페',
+        emoji: '☕',
+        objects: [
+            { name: '커피머신', emoji: '☕' },
+            { name: '테이블', emoji: '🪑' },
+            { name: '메뉴판', emoji: '📋' },
+            { name: '진열장', emoji: '🍰' },
+            { name: '계산대', emoji: '💰' }
+        ]
+    },
+    {
+        name: '학교',
+        emoji: '🏫',
+        objects: [
+            { name: '칠판', emoji: '📝' },
+            { name: '교탁', emoji: '🖊️' },
+            { name: '책상', emoji: '📚' },
+            { name: '사물함', emoji: '🗄️' },
+            { name: '시계', emoji: '⏰' }
+        ]
+    },
+    {
+        name: '병원',
+        emoji: '🏥',
+        objects: [
+            { name: '진료실 문', emoji: '🚪' },
+            { name: '대기실 의자', emoji: '💺' },
+            { name: '접수창구', emoji: '🪟' },
+            { name: '자동문', emoji: '🚪' },
+            { name: '약국 선반', emoji: '💊' }
+        ]
+    },
+    {
+        name: '체육관',
+        emoji: '🏋️',
+        objects: [
+            { name: '러닝머신', emoji: '🏃' },
+            { name: '아령', emoji: '🏋️' },
+            { name: '탈의실 사물함', emoji: '🔐' },
+            { name: '운동 매트', emoji: '🧘' },
+            { name: '음수대', emoji: '🚰' }
+        ]
+    },
+    {
+        name: '수영장',
+        emoji: '🏊',
+        objects: [
+            { name: '다이빙대', emoji: '🤿' },
+            { name: '튜브', emoji: '🛟' },
+            { name: '샤워실', emoji: '🚿' },
+            { name: '의자', emoji: '🪑' },
+            { name: '구명조끼', emoji: '🦺' }
+        ]
     }
 ];
 
@@ -548,38 +658,59 @@ class MemoryPalace {
         // 통계 그리드
         this.statsGrid.innerHTML = '';
 
-        locations.forEach(location => {
+        locations.forEach((location, locationIndex) => {
             const div = document.createElement('div');
             div.className = 'stats-location';
 
-            let objectsHTML = '';
-            location.objects.forEach(object => {
+            const objectsContainer = document.createElement('div');
+            objectsContainer.className = 'stats-objects';
+
+            location.objects.forEach((object, objectIndex) => {
                 const key = `${location.name}-${object.name}`;
                 const count = stats[key] || 0;
+                const position = locationIndex * 5 + objectIndex;
 
-                objectsHTML += `
-                    <div class="stats-object">
-                        <div class="stats-object-name">
-                            <span>${object.emoji}</span>
-                            <span>${object.name}</span>
-                        </div>
-                        <div class="stats-object-count">${count}회</div>
+                const objectDiv = document.createElement('div');
+                objectDiv.className = 'stats-object clickable';
+                if (position === currentPos) {
+                    objectDiv.classList.add('current-position');
+                }
+
+                objectDiv.innerHTML = `
+                    <div class="stats-object-name">
+                        <span>${object.emoji}</span>
+                        <span>${object.name}</span>
                     </div>
+                    <div class="stats-object-count">${count}회</div>
                 `;
+
+                // 위치 지정 클릭 이벤트
+                objectDiv.addEventListener('click', () => {
+                    this.setPositionManually(position, location.name, object.name);
+                });
+
+                objectsContainer.appendChild(objectDiv);
             });
 
-            div.innerHTML = `
-                <div class="stats-location-header">
-                    <span>${location.emoji}</span>
-                    <span>${location.name}</span>
-                </div>
-                <div class="stats-objects">
-                    ${objectsHTML}
-                </div>
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'stats-location-header';
+            headerDiv.innerHTML = `
+                <span>${location.emoji}</span>
+                <span>${location.name}</span>
             `;
+
+            div.appendChild(headerDiv);
+            div.appendChild(objectsContainer);
 
             this.statsGrid.appendChild(div);
         });
+    }
+
+    setPositionManually(position, locationName, objectName) {
+        if (confirm(`"${locationName} - ${objectName}"을(를) 다음 시작 위치로 설정하시겠습니까?`)) {
+            this.setCurrentPosition(position);
+            alert(`위치가 "${locationName} - ${objectName}"(으)로 설정되었습니다.\n다음 궁전 생성 시 여기서부터 시작됩니다.`);
+        }
     }
 
     reset() {

@@ -267,6 +267,17 @@ class MemoryPalace {
         this.exportDataBtn = document.getElementById('exportData');
         this.clearAllDataBtn = document.getElementById('clearAllData');
 
+        // YouTube 관련
+        this.youtubeKeywordInput = document.getElementById('youtubeKeyword');
+        this.youtubeDaysInput = document.getElementById('youtubeDays');
+        this.searchYoutubeBtn = document.getElementById('searchYoutubeBtn');
+        this.youtubeLoadingIndicator = document.getElementById('youtubeLoadingIndicator');
+        this.youtubeResults = document.getElementById('youtubeResults');
+        this.youtubeResultsContent = document.getElementById('youtubeResultsContent');
+        this.youtubeApiKeyInput = document.getElementById('youtubeApiKey');
+        this.saveYoutubeApiKeyBtn = document.getElementById('saveYoutubeApiKey');
+        this.testYoutubeApiKeyBtn = document.getElementById('testYoutubeApiKey');
+
         // 상태
         this.currentPalaceData = null;
         this.currentTestPalace = null;
@@ -302,6 +313,11 @@ class MemoryPalace {
         // 데이터 관리
         this.exportDataBtn.addEventListener('click', () => this.exportData());
         this.clearAllDataBtn.addEventListener('click', () => this.clearAllData());
+
+        // YouTube
+        this.searchYoutubeBtn.addEventListener('click', () => this.searchYouTube());
+        this.saveYoutubeApiKeyBtn.addEventListener('click', () => this.saveYoutubeApiKey());
+        this.testYoutubeApiKeyBtn.addEventListener('click', () => this.testYoutubeApiKey());
 
         // 저장된 궁전
         this.clearAllBtn.addEventListener('click', () => this.clearAllPalaces());
@@ -344,6 +360,12 @@ class MemoryPalace {
             const defaultKey = 'AIzaSyCQ4DqdPQzIBJL5gZ6-qqTz9nGInOPVoY4';
             localStorage.setItem('geminiApiKey', defaultKey);
             this.apiKeyInput.value = defaultKey;
+        }
+
+        // YouTube API 키 로드
+        const youtubeApiKey = localStorage.getItem('youtubeApiKey');
+        if (youtubeApiKey) {
+            this.youtubeApiKeyInput.value = youtubeApiKey;
         }
     }
 
@@ -1051,6 +1073,273 @@ class MemoryPalace {
         this.palaceGrid.innerHTML = '';
         this.currentPalaceData = null;
         this.keywordsInput.focus();
+    }
+
+    // YouTube 관련 메서드
+    saveYoutubeApiKey() {
+        const apiKey = this.youtubeApiKeyInput.value.trim();
+        if (!apiKey) {
+            alert('YouTube API 키를 입력해주세요.');
+            return;
+        }
+
+        localStorage.setItem('youtubeApiKey', apiKey);
+        alert('YouTube API 키가 저장되었습니다.');
+    }
+
+    async testYoutubeApiKey() {
+        const apiKey = this.youtubeApiKeyInput.value.trim() || localStorage.getItem('youtubeApiKey');
+        if (!apiKey) {
+            alert('YouTube API 키를 입력하거나 저장해주세요.');
+            return;
+        }
+
+        this.testYoutubeApiKeyBtn.disabled = true;
+        this.testYoutubeApiKeyBtn.textContent = '테스트 중...';
+
+        try {
+            // 간단한 검색 테스트
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${apiKey}`;
+            const response = await fetch(url);
+
+            if (response.ok) {
+                alert('✅ YouTube API 키 테스트 성공!\n\nYouTube 검색이 준비되었습니다.');
+            } else {
+                const errorData = await response.json();
+                console.error('YouTube API Error:', errorData);
+                alert(`⚠️ YouTube API 키 테스트 실패\n\n에러: ${errorData.error?.message || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('YouTube API Test Error:', error);
+            alert('❌ YouTube API 테스트 실패\n\n에러: ' + error.message);
+        } finally {
+            this.testYoutubeApiKeyBtn.disabled = false;
+            this.testYoutubeApiKeyBtn.textContent = 'API 테스트';
+        }
+    }
+
+    async searchYouTube() {
+        const keyword = this.youtubeKeywordInput.value.trim();
+        const days = parseInt(this.youtubeDaysInput.value);
+
+        if (!keyword) {
+            alert('검색 키워드를 입력해주세요.');
+            return;
+        }
+
+        const youtubeApiKey = localStorage.getItem('youtubeApiKey');
+        if (!youtubeApiKey) {
+            alert('YouTube API 키를 설정 탭에서 먼저 저장해주세요.');
+            return;
+        }
+
+        const geminiApiKey = localStorage.getItem('geminiApiKey');
+        if (!geminiApiKey) {
+            alert('Gemini API 키를 설정 탭에서 먼저 저장해주세요.');
+            return;
+        }
+
+        // 로딩 표시
+        this.youtubeLoadingIndicator.classList.remove('hidden');
+        this.searchYoutubeBtn.disabled = true;
+        this.youtubeResults.classList.add('hidden');
+
+        try {
+            // 날짜 계산
+            const publishedAfter = new Date();
+            publishedAfter.setDate(publishedAfter.getDate() - days);
+            const publishedAfterISO = publishedAfter.toISOString();
+
+            // YouTube 검색
+            console.log(`Searching YouTube for: ${keyword}, from ${publishedAfterISO}`);
+            const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&order=date&publishedAfter=${publishedAfterISO}&maxResults=10&key=${youtubeApiKey}`;
+
+            const searchResponse = await fetch(searchUrl);
+
+            if (!searchResponse.ok) {
+                const errorData = await searchResponse.json();
+                throw new Error(`YouTube 검색 실패: ${errorData.error?.message || '알 수 없는 오류'}`);
+            }
+
+            const searchData = await searchResponse.json();
+            console.log('YouTube Search Results:', searchData);
+
+            if (!searchData.items || searchData.items.length === 0) {
+                alert(`최근 ${days}일 동안 "${keyword}"에 대한 YouTube 영상을 찾을 수 없습니다.`);
+                return;
+            }
+
+            // 비디오 정보 수집
+            const videos = searchData.items.map(item => ({
+                id: item.id.videoId,
+                title: item.snippet.title,
+                description: item.snippet.description,
+                channelTitle: item.snippet.channelTitle,
+                publishedAt: item.snippet.publishedAt,
+                thumbnailUrl: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url
+            }));
+
+            console.log(`Found ${videos.length} videos`);
+
+            // AI로 요약 및 감정분석
+            const analysis = await this.analyzeYoutubeVideos(keyword, videos, days);
+
+            // 결과 표시
+            this.displayYoutubeResults(keyword, days, videos, analysis);
+
+        } catch (error) {
+            console.error('YouTube Search Error:', error);
+            alert('YouTube 검색 중 오류가 발생했습니다.\n\n에러: ' + error.message);
+        } finally {
+            this.youtubeLoadingIndicator.classList.add('hidden');
+            this.searchYoutubeBtn.disabled = false;
+        }
+    }
+
+    async analyzeYoutubeVideos(keyword, videos, days) {
+        const geminiApiKey = localStorage.getItem('geminiApiKey');
+
+        // 비디오 정보를 텍스트로 변환
+        const videosText = videos.map((video, index) => {
+            return `[영상 ${index + 1}]
+제목: ${video.title}
+채널: ${video.channelTitle}
+업로드: ${new Date(video.publishedAt).toLocaleString('ko-KR')}
+설명: ${video.description.substring(0, 200)}...`;
+        }).join('\n\n');
+
+        const prompt = `당신은 YouTube 콘텐츠 분석 전문가입니다. 다음 정보를 분석해주세요:
+
+키워드: "${keyword}"
+기간: 최근 ${days}일
+발견된 영상 수: ${videos.length}개
+
+영상 정보:
+${videosText}
+
+다음 내용을 포함하여 분석해주세요:
+
+1. **전체 요약** (3-5문장)
+   - 주요 콘텐츠 내용
+   - 주요 트렌드나 패턴
+
+2. **감정 분석**
+   - 전반적인 감정 톤 (긍정적, 부정적, 중립적)
+   - 주요 감정 키워드
+   - 감정 점수 (1-10점, 1=매우 부정적, 10=매우 긍정적)
+
+3. **주요 토픽**
+   - 가장 많이 언급된 주제들 (3-5개)
+
+4. **권장 사항**
+   - 이 키워드에 대해 주목해야 할 점
+
+마크다운 형식으로 작성해주세요.`;
+
+        try {
+            const modelName = await this.discoverGeminiModel(geminiApiKey);
+            const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${geminiApiKey}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 2000,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                let errorMessage = `AI 분석 실패 (${response.status})`;
+                if (response.status === 429) {
+                    errorMessage = 'API 요청 제한 초과 (429): 잠시 후 다시 시도해주세요.';
+                } else {
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error?.message || errorMessage;
+                    } catch (e) {
+                        console.error('Failed to parse error response:', e);
+                    }
+                }
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+            const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!analysis) {
+                throw new Error('AI 분석 결과를 생성하지 못했습니다.');
+            }
+
+            return analysis.trim();
+        } catch (error) {
+            console.error('AI Analysis Error:', error);
+            throw error;
+        }
+    }
+
+    displayYoutubeResults(keyword, days, videos, analysis) {
+        this.youtubeResultsContent.innerHTML = `
+            <div class="youtube-analysis">
+                <div class="analysis-header">
+                    <h3>🔍 검색 정보</h3>
+                    <p><strong>키워드:</strong> ${keyword}</p>
+                    <p><strong>기간:</strong> 최근 ${days}일</p>
+                    <p><strong>발견된 영상:</strong> ${videos.length}개</p>
+                </div>
+
+                <div class="analysis-content">
+                    <h3>📊 AI 분석 결과</h3>
+                    <div class="analysis-text">${this.markdownToHtml(analysis)}</div>
+                </div>
+
+                <div class="video-list">
+                    <h3>🎬 영상 목록</h3>
+                    ${videos.map(video => `
+                        <div class="video-item">
+                            <img src="${video.thumbnailUrl}" alt="${video.title}" class="video-thumbnail">
+                            <div class="video-info">
+                                <h4><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank">${video.title}</a></h4>
+                                <p class="video-channel">${video.channelTitle}</p>
+                                <p class="video-date">${new Date(video.publishedAt).toLocaleString('ko-KR')}</p>
+                                <p class="video-description">${video.description.substring(0, 150)}...</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        this.youtubeResults.classList.remove('hidden');
+        this.youtubeResults.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    markdownToHtml(markdown) {
+        // 간단한 마크다운 변환
+        let html = markdown;
+
+        // 헤딩
+        html = html.replace(/### (.*?)$/gm, '<h4>$1</h4>');
+        html = html.replace(/## (.*?)$/gm, '<h3>$1</h3>');
+        html = html.replace(/# (.*?)$/gm, '<h2>$1</h2>');
+
+        // 볼드
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // 리스트
+        html = html.replace(/^- (.*?)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+        // 줄바꿈
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = '<p>' + html + '</p>';
+
+        return html;
     }
 }
 

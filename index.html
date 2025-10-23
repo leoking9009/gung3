@@ -17,6 +17,7 @@
         <nav class="tabs">
             <button class="tab-btn active" data-tab="create">새로 만들기</button>
             <button class="tab-btn" data-tab="saved">저장된 궁전</button>
+            <button class="tab-btn" data-tab="youtube">YouTube 분석</button>
             <button class="tab-btn" data-tab="stats">사용 통계</button>
             <button class="tab-btn" data-tab="settings">설정</button>
         </nav>
@@ -93,7 +94,48 @@
                 </section>
             </div>
 
-            <!-- 탭 3: 사용 통계 -->
+            <!-- 탭 3: YouTube 분석 -->
+            <div class="tab-content" id="youtubeTab">
+                <section class="youtube-section">
+                    <h2>🎥 YouTube 콘텐츠 분석</h2>
+
+                    <div class="input-group">
+                        <label for="youtubeKeyword">검색 키워드</label>
+                        <input
+                            type="text"
+                            id="youtubeKeyword"
+                            placeholder="예: hlb 주식회사"
+                            class="title-input"
+                        />
+                    </div>
+
+                    <div class="input-group">
+                        <label for="youtubeDays">검색 기간 (일)</label>
+                        <input
+                            type="number"
+                            id="youtubeDays"
+                            value="3"
+                            min="1"
+                            max="30"
+                            class="title-input"
+                        />
+                    </div>
+
+                    <button id="searchYoutubeBtn" class="btn-primary">YouTube 검색 및 분석</button>
+
+                    <div id="youtubeLoadingIndicator" class="loading-indicator hidden">
+                        <div class="spinner"></div>
+                        <p>YouTube 영상을 검색하고 AI 분석 중입니다...</p>
+                    </div>
+
+                    <div id="youtubeResults" class="youtube-results hidden">
+                        <h3>분석 결과</h3>
+                        <div id="youtubeResultsContent"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 탭 4: 사용 통계 -->
             <div class="tab-content" id="statsTab">
                 <section class="stats-section">
                     <h2>장소 및 물건 사용 통계</h2>
@@ -108,10 +150,30 @@
                 </section>
             </div>
 
-            <!-- 탭 4: 설정 -->
+            <!-- 탭 5: 설정 -->
             <div class="tab-content" id="settingsTab">
                 <section class="settings-section">
                     <h2>⚙️ 설정</h2>
+
+                    <div class="settings-group">
+                        <h3>YouTube API</h3>
+                        <div class="setting-item">
+                            <label for="youtubeApiKey" class="setting-label-text">YouTube Data API 키</label>
+                            <input
+                                type="text"
+                                id="youtubeApiKey"
+                                class="api-key-input"
+                                placeholder="YouTube API 키를 입력하세요"
+                            />
+                            <p class="setting-description">
+                                <a href="https://console.cloud.google.com/apis/credentials" target="_blank">
+                                    Google Cloud Console에서 YouTube Data API v3 키 발급받기 →
+                                </a>
+                            </p>
+                            <button id="saveYoutubeApiKey" class="btn-success">API 키 저장</button>
+                            <button id="testYoutubeApiKey" class="btn-primary" style="margin-left: 10px;">API 테스트</button>
+                        </div>
+                    </div>
 
                     <div class="settings-group">
                         <h3>AI 스토리 생성</h3>

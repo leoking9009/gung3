@@ -371,6 +371,11 @@ class MemoryPalace {
         if (!modelsResponse.ok) {
             const errorText = await modelsResponse.text();
             console.error('Models API Response:', modelsResponse.status, errorText);
+
+            if (modelsResponse.status === 429) {
+                throw new Error('API 요청 제한 초과 (429): 너무 많은 요청을 보냈습니다. 5-10분 후 다시 시도해주세요.');
+            }
+
             throw new Error(`모델 목록 가져오기 실패 (${modelsResponse.status}): ${errorText}`);
         }
 
@@ -437,14 +442,27 @@ class MemoryPalace {
             console.error('Error type:', typeof error);
             console.error('Error message:', error.message);
             console.error('Error stack:', error.stack);
+
             let errorMsg = '❌ API 테스트 실패\n\n';
             errorMsg += '에러: ' + (error.message || JSON.stringify(error)) + '\n\n';
-            errorMsg += '확인사항:\n';
-            errorMsg += '1. API 키가 올바른지 확인\n';
-            errorMsg += '2. Google AI Studio에서 API가 활성화되었는지 확인\n';
-            errorMsg += '3. "Generative Language API" 권한 확인\n';
-            errorMsg += '4. 브라우저 콘솔(F12)에서 자세한 에러 확인\n\n';
-            errorMsg += 'API 키 발급: https://makersuite.google.com/app/apikey';
+
+            // 429 에러일 경우 특별한 안내
+            if (error.message && error.message.includes('429')) {
+                errorMsg += '⏰ API 요청 제한 초과\n\n';
+                errorMsg += '해결 방법:\n';
+                errorMsg += '1. 5-10분 정도 기다린 후 다시 시도\n';
+                errorMsg += '2. Google AI Studio에서 할당량 확인\n';
+                errorMsg += '3. 당분간 AI 기능을 끄고 기본 스토리로 사용\n\n';
+                errorMsg += '할당량 확인: https://aistudio.google.com/';
+            } else {
+                errorMsg += '확인사항:\n';
+                errorMsg += '1. API 키가 올바른지 확인\n';
+                errorMsg += '2. Google AI Studio에서 API가 활성화되었는지 확인\n';
+                errorMsg += '3. "Generative Language API" 권한 확인\n';
+                errorMsg += '4. 브라우저 콘솔(F12)에서 자세한 에러 확인\n\n';
+                errorMsg += 'API 키 발급: https://makersuite.google.com/app/apikey';
+            }
+
             alert(errorMsg);
         } finally {
             this.testApiKeyBtn.disabled = false;
@@ -501,12 +519,17 @@ class MemoryPalace {
 
         if (!response.ok) {
             let errorMessage = `API 호출 실패 (${response.status})`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.error?.message || errorMessage;
-                console.error('API Error Details:', errorData);
-            } catch (e) {
-                console.error('Failed to parse error response:', e);
+
+            if (response.status === 429) {
+                errorMessage = 'API 요청 제한 초과 (429): 잠시 후 다시 시도하거나 AI 기능을 끄고 사용하세요.';
+            } else {
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error?.message || errorMessage;
+                    console.error('API Error Details:', errorData);
+                } catch (e) {
+                    console.error('Failed to parse error response:', e);
+                }
             }
             throw new Error(errorMessage);
         }

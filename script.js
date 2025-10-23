@@ -369,7 +369,9 @@ class MemoryPalace {
         const modelsResponse = await fetch(modelsUrl);
 
         if (!modelsResponse.ok) {
-            throw new Error(`모델 목록 가져오기 실패 (${modelsResponse.status})`);
+            const errorText = await modelsResponse.text();
+            console.error('Models API Response:', modelsResponse.status, errorText);
+            throw new Error(`모델 목록 가져오기 실패 (${modelsResponse.status}): ${errorText}`);
         }
 
         const modelsData = await modelsResponse.json();
@@ -432,8 +434,11 @@ class MemoryPalace {
 
         } catch (error) {
             console.error('API Test Error:', error);
+            console.error('Error type:', typeof error);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
             let errorMsg = '❌ API 테스트 실패\n\n';
-            errorMsg += '에러: ' + error.message + '\n\n';
+            errorMsg += '에러: ' + (error.message || JSON.stringify(error)) + '\n\n';
             errorMsg += '확인사항:\n';
             errorMsg += '1. API 키가 올바른지 확인\n';
             errorMsg += '2. Google AI Studio에서 API가 활성화되었는지 확인\n';
